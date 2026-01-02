@@ -1,14 +1,14 @@
-# 🌱 AgriVision: AI-Powered Real-Time Crop Health Monitoring 🌾
+# 🌱 AgroVision: AI-Powered Real-Time Crop Health Monitoring 🌾
 
 <video width="640" height="360" controls>
   <source src="folder/demo.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
 
-Welcome to **AgriVision**! This project was developed during the **Code Odyssey Hackathon** by **Team Synergy Squad** from **K J Somaiya Institute of Technology**. Our AI-powered solution aims to revolutionize agriculture by detecting crop diseases early and providing sustainable, eco-friendly interventions, leading to healthier crops and reduced chemical usage.
+Welcome to **AgroVision**! This project was developed during the **Code Odyssey Hackathon** by **Team Synergy Squad** from **K J Somaiya Institute of Technology**. Our AI-powered solution aims to revolutionize agriculture by detecting crop diseases early and providing sustainable, eco-friendly interventions, leading to healthier crops and reduced chemical usage.
 
 ## 📋 Problem Statement
-Agricultural productivity faces significant threats from pests and diseases, resulting in substantial crop losses each year. Traditional methods of pest control are inefficient and environmentally harmful. **AgriVision** leverages AI and drone imagery to tackle these challenges by providing real-time insights to farmers for better crop management.
+Agricultural productivity faces significant threats from pests and diseases, resulting in substantial crop losses each year. Traditional methods of pest control are inefficient and environmentally harmful. **AgroVision** leverages AI and drone imagery to tackle these challenges by providing real-time insights to farmers for better crop management.
 
 ---
 
@@ -58,7 +58,7 @@ Agricultural productivity faces significant threats from pests and diseases, res
 
 ---
 
-## 🌟 Why Choose AgriVision?
+## 🌟 Why Choose AgroVision?
 - **🌐 Digitized Farms**: Leverage cutting-edge technology to improve farm efficiency.
 - **💰 Improved ROI**: Farmers can maximize their revenue by reducing crop losses and optimizing farming practices.
 - **📊 Easy-to-Understand Dashboard**: Simplified dashboards to view crop health, disease trends, and weather forecasts.
@@ -87,4 +87,4 @@ Agricultural productivity faces significant threats from pests and diseases, res
 
 ---
 
-Thank you for visiting our repository! We believe **AgriVision** is the future of sustainable farming, combining the power of AI with eco-friendly practices to help farmers everywhere. 🌱
+Thank you for visiting our repository! We believe **AgroVision** is the future of sustainable farming, combining the power of AI with eco-friendly practices to help farmers everywhere. 🌱
