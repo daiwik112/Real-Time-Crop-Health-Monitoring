@@ -2,14 +2,34 @@
 from flask import Flask, render_template, request
 import numpy as np
 import os
-import cv2  # Ensure cv2 is imported
-from tensorflow.keras.preprocessing.image import img_to_array
-from tensorflow.keras.models import load_model
-import os
-import cv2
+try:
+  import cv2
+except Exception as _e:
+  cv2 = None
+  print("Warning: OpenCV (cv2) not available:", _e)
+
+# Try to import TensorFlow/Keras and load model, but allow server to run if unavailable
+model = None
+model_loaded = False
+try:
+  from tensorflow.keras.preprocessing.image import img_to_array
+  from tensorflow.keras.models import load_model
+  filepath = 'plant_disease_prediction_model.h5'
+  try:
+    model = load_model(filepath)
+    model_loaded = True
+    print("Model Loaded Successfully")
+  except Exception as e:
+    print("Warning: model file could not be loaded:", e)
+except Exception as e:
+  print("Warning: TensorFlow/Keras not available:", e)
+
 from flask import Flask, request, jsonify, render_template, send_from_directory
-from tensorflow.keras.models import load_model  # type: ignore
-from PIL import Image
+try:
+  from PIL import Image
+except Exception as e:
+  Image = None
+  print("Warning: Pillow (PIL) not available:", e)
 import numpy as np
 import json
 import mimetypes
@@ -370,11 +390,13 @@ def load_and_preprocess_image(image_path, target_size=(224, 224)):
     return img_array
 
 def predict_frame(frame_path):
-    image = load_and_preprocess_image(frame_path)
-    prediction = model.predict(image)
-    predicted_class_index = np.argmax(prediction, axis=1)[0]
-    predicted_class_name = class_indices[str(predicted_class_index)]
-    return predicted_class_name
+  if not model_loaded:
+    return None
+  image = load_and_preprocess_image(frame_path)
+  prediction = model.predict(image)
+  predicted_class_index = np.argmax(prediction, axis=1)[0]
+  predicted_class_name = class_indices[str(predicted_class_index)]
+  return predicted_class_name
 
 # Route to serve the frontend page
 @app.route('/analyze')
@@ -396,10 +418,13 @@ def upload_file():
     # Determine the file type
     mime_type, _ = mimetypes.guess_type(file_path)
 
+    if not model_loaded:
+      return jsonify({'error': 'Model not loaded on server'}), 503
+
     if mime_type and mime_type.startswith('image'):
-        # Handle image file
-        predicted_class = predict_frame(file_path)
-        return jsonify({'file': file.filename, 'prediction': predicted_class})
+      # Handle image file
+      predicted_class = predict_frame(file_path)
+      return jsonify({'file': file.filename, 'prediction': predicted_class})
 
     elif mime_type and mime_type.startswith('video'):
         # Handle video file
@@ -408,13 +433,13 @@ def upload_file():
         predictions = []  # To store predicted class names for all frames
 
         for frame_filename in os.listdir(frames_dir):
-            frame_path = os.path.join(frames_dir, frame_filename)
-            predicted_class = predict_frame(frame_path)
-            predictions.append(predicted_class)  # Collect predictions
-            results.append({
-                'frame': frame_filename,
-                'prediction': predicted_class
-            })
+          frame_path = os.path.join(frames_dir, frame_filename)
+          predicted_class = predict_frame(frame_path)
+          predictions.append(predicted_class)  # Collect predictions
+          results.append({
+            'frame': frame_filename,
+            'prediction': predicted_class
+          })
 
         # Count occurrences of each predicted class
         class_count = Counter(predictions)
@@ -507,29 +532,58 @@ def monthly_data():
 @app.route("/predict", methods=['GET', 'POST'])
 def predict():
     if request.method == 'POST':
-        file = request.files['image']  # Get input
-        filename = file.filename        
-        print("@@ Input posted =", filename)
-        
-        file_path = os.path.join('static/upload/', filename)
-        file.save(file_path)
+        try:
+            if 'image' not in request.files:
+                return render_template('index.html', error_message="No file part in the request.")
+                
+            file = request.files['image']  # Get input
+            filename = file.filename
+            
+            if filename == '':
+                return render_template('index.html', error_message="No selected file.")
 
-        print("@@ Predicting class......")
-        # Load image using OpenCV
-        image = cv2.imread(file_path)
-        
-        pred, confidence = predict_image_class(model, image, class_indices)
+            if file:
+                print("@@ Input posted =", filename)
+                
+                # Ensure upload directory exists
+                upload_dir = 'static/upload/'
+                if not os.path.exists(upload_dir):
+                    os.makedirs(upload_dir)
 
-        # Get treatment solution and cause
-        treatment_solution = treatment_solutions.get(pred, "No treatment available.")
-        disease_cause = disease_causes.get(pred, "No cause information available.")
+                file_path = os.path.join(upload_dir, filename)
+                file.save(file_path)
 
-        return render_template('result.html', 
-                               pred_output=pred, 
-                               confidence=confidence, 
-                               treatment=treatment_solution, 
-                               cause=disease_cause, 
-                               user_image=file_path)
+                print("@@ Predicting class......")
+                # Load image using OpenCV
+                image = cv2.imread(file_path)
+                
+                if image is None:
+                     return render_template('index.html', error_message="Invalid image file. Please upload a valid image.")
+
+                pred, confidence = predict_image_class(model, image, class_indices)
+                
+                # Validation: Confidence Threshold
+                # If confidence is too low, it's likely not a leaf or the model is unsure.
+                # Adjust threshold as needed. 0.6 is a safe bet for "generic non-leaf" filtering if model is robust.
+                CONFIDENCE_THRESHOLD = 0.60 
+                
+                if confidence < CONFIDENCE_THRESHOLD:
+                     return render_template('index.html', error_message="Could not identify a crop leaf with high confidence. Please upload a clear image of a crop leaf.")
+
+                # Get treatment solution and cause
+                treatment_solution = treatment_solutions.get(pred, "No treatment available.")
+                disease_cause = disease_causes.get(pred, "No cause information available.")
+
+                return render_template('result.html', 
+                                    pred_output=pred, 
+                                    confidence=confidence, 
+                                    treatment=treatment_solution, 
+                                    cause=disease_cause, 
+                                    user_image=file_path)
+        except Exception as e:
+            print(f"Error making prediction: {e}")
+            return render_template('index.html', error_message="An error occurred while processing the image. Please try again.")
+    return render_template('index.html')
 
 # For local system & cloud
 if __name__ == "__main__":
